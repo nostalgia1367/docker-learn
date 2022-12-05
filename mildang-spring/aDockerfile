@@ -1,0 +1,58 @@
+#FROM gradle:7.1.0-jdk11 AS builder
+#WORKDIR /home/gradle/src
+#COPY --chown=gradle:gradle . /home/gradle/src
+# RUN gradle installDist
+
+FROM openjdk:11-oracle AS builder 
+#RUN microdnf install findutils
+#RUN gradlew install
+#COPY --from=builder /home/gradle/src/build/install/app/ /app/
+#WORKDIR /app
+
+
+# 베이스 이미지 + 이미지 별칭
+#FROM adoptopenjdk/openjdk17 AS builder
+#FROM openjdk:17 AS builder
+
+# gradlew 복사
+COPY gradlew .
+
+# gradle 복사
+COPY gradle gradle
+
+# build.gradle 복사
+COPY build.gradle . 
+
+# settings.gradle 복사
+COPY settings.gradle . 
+
+# 웹 어플리케이션 소스 복사
+COPY src src 
+
+# gradlew 실행권한 부여
+RUN chmod +x ./gradlew 
+
+# gradlew를 사용하여 실행 가능한 jar 파일 생성
+#RUN ./gradlew build
+#RUN ./gradlew assembleDebug
+RUN ./gradlew clean bootJar
+
+# 베이스 이미지
+FROM openjdk:17
+
+# builder 이미지에서 build/libs/*.jar 파일을 app.jar로 복사
+COPY --from=builder build/libs/*.jar app.jar 
+
+# 컨테이너 Port 노출
+EXPOSE 8080 
+
+# jar 파일 실행
+ENTRYPOINT ["java","-jar","/app.jar"] 
+
+
+
+#FROM adoptopenjdk/openjdk17
+#CMD ["./mvnw", "clean", "package"]
+#ARG JAR_FILE_PATH=target/*.jar
+#COPY ${JAR_FILE_PATH} app.jar
+#ENTRYPOINT ["java", "-jar", "app.jar"]
